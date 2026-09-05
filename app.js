@@ -171,6 +171,8 @@ function renderResult(answers) {
     secBox.hidden = true;
   }
 
+  renderScale(rom);
+  renderRadar(s, primary);
   renderMeters(s);
   renderTable(s, rom);
   $('#copy-btn').textContent = '結果をコピー';
@@ -210,6 +212,118 @@ function renderMeters(s) {
   });
 }
 
+/* ---------- 心の可動域スケール（0-100 上の位置） -------------------- */
+
+function renderScale(rom) {
+  $('#scale-fill').style.width = rom + '%';
+  const marker = $('#scale-marker');
+  marker.style.left = rom + '%';
+  marker.setAttribute('aria-hidden', 'true');
+}
+
+/* ---------- レーダーチャート ---------------------------------------- */
+
+const RADAR = { cx: 180, cy: 176, r: 104, labelR: 132, rings: [25, 50, 75, 100] };
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function radarAngle(i) {
+  return (-90 + i * (360 / DIMENSIONS.length)) * Math.PI / 180;
+}
+
+function radarPoint(i, v) {
+  const a = radarAngle(i), rr = RADAR.r * (v / 100);
+  return [RADAR.cx + rr * Math.cos(a), RADAR.cy + rr * Math.sin(a)];
+}
+
+function poly(values) {
+  return values.map((v, i) => radarPoint(i, v).map((n) => n.toFixed(1)).join(',')).join(' ');
+}
+
+function el(name, attrs) {
+  const n = document.createElementNS(SVG_NS, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+
+function renderRadar(s, type) {
+  const svg = $('#radar');
+  const you = DIMENSIONS.map((d) => s[d.key]);
+  const ref = DIMENSIONS.map((d) => type.target[d.key]);
+
+  svg.querySelectorAll('g,polygon,line,circle,text').forEach((n) => n.remove());
+  svg.querySelector('title').textContent =
+    'レーダーチャート。' + DIMENSIONS.map((d) => `${d.name} ${s[d.key]}`).join('、') + '。';
+
+  const gGrid = el('g', { class: 'radar-grid' });
+  RADAR.rings.forEach((p) => gGrid.appendChild(el('polygon', { points: poly(DIMENSIONS.map(() => p)) })));
+  DIMENSIONS.forEach((_, i) => {
+    const [x, y] = radarPoint(i, 100);
+    gGrid.appendChild(el('line', { x1: RADAR.cx, y1: RADAR.cy, x2: x.toFixed(1), y2: y.toFixed(1) }));
+  });
+  svg.appendChild(gGrid);
+
+  // 軸ラベル
+  const gLab = el('g', { class: 'radar-labels' });
+  DIMENSIONS.forEach((d, i) => {
+    const a = radarAngle(i);
+    const x = RADAR.cx + RADAR.labelR * Math.cos(a);
+    const y = RADAR.cy + RADAR.labelR * Math.sin(a);
+    const anchor = Math.abs(Math.cos(a)) < 0.2 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end');
+    const t = el('text', {
+      x: x.toFixed(1), y: (y + 4 + 8 * Math.sin(a)).toFixed(1), 'text-anchor': anchor
+    });
+    t.textContent = d.name;
+    if (d.burden) {
+      const sp = el('tspan', { class: 'ax-burden' });
+      sp.textContent = ' ▲';
+      t.appendChild(sp);
+    }
+    gLab.appendChild(t);
+  });
+  svg.appendChild(gLab);
+
+  // 代表像（線のみ）→ あなた（塗り＋線）の順に重ねる
+  svg.appendChild(el('polygon', { class: 'series-ref', points: poly(ref) }));
+  svg.appendChild(el('polygon', { class: 'series-you', points: poly(you) }));
+
+  const gDots = el('g', { class: 'radar-dots' });
+  you.forEach((v, i) => {
+    const [x, y] = radarPoint(i, v);
+    gDots.appendChild(el('circle', { class: 'dot-you', cx: x.toFixed(1), cy: y.toFixed(1), r: 4.5 }));
+  });
+  svg.appendChild(gDots);
+
+  // ホバー/フォーカス用の当たり判定（実マークより大きく取る）
+  const tip = $('#radar-tip');
+  const gHit = el('g', { class: 'radar-hits' });
+  DIMENSIONS.forEach((d, i) => {
+    const [x, y] = radarPoint(i, Math.max(you[i], 12));
+    const c = el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 17, tabindex: '0', role: 'img' });
+    c.setAttribute('aria-label', `${d.name} あなた ${you[i]}、${type.name}の代表像 ${ref[i]}`);
+    const showTip = () => {
+      tip.innerHTML =
+        `<b>${d.name}${d.burden ? ' ▲' : ''}</b>` +
+        `<span><i class="sw sw1"></i>あなた <b>${you[i]}</b></span>` +
+        `<span><i class="sw sw2"></i>代表像 <b>${ref[i]}</b></span>`;
+      tip.hidden = false;
+      const wr = $('.radar-wrap').getBoundingClientRect();
+      const cr = c.getBoundingClientRect();
+      tip.style.left = (cr.left + cr.width / 2 - wr.left) + 'px';
+      tip.style.top = (cr.top - wr.top - 10) + 'px';
+    };
+    const hideTip = () => { tip.hidden = true; };
+    c.addEventListener('mouseenter', showTip);
+    c.addEventListener('mouseleave', hideTip);
+    c.addEventListener('focus', showTip);
+    c.addEventListener('blur', hideTip);
+    gHit.appendChild(c);
+  });
+  svg.appendChild(gHit);
+
+  $('#radar-legend').innerHTML =
+    `<span class="lg"><i class="sw sw1"></i>あなた</span>` +
+    `<span class="lg"><i class="sw sw2"></i>${type.name}の代表像</span>`;
+}
 function renderTable(s, rom) {
   const rows = DIMENSIONS.map(
     (d) => `<tr><th scope="row">${d.name}</th><td>${s[d.key]}</td><td>${d.burden ? '高いほど負荷' : '高いほど強い'}</td></tr>`

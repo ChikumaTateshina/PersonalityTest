@@ -76,6 +76,20 @@
       <p class="hero-label">心の可動域</p>
       <p id="hero-value" class="hero-value">0</p>
       <p class="hero-unit">/ 100</p>
+
+      <div class="scale">
+        <div class="scale-track">
+          <div id="scale-fill" class="scale-fill"></div>
+          <span class="scale-tick" style="left:35%"></span>
+          <span class="scale-tick" style="left:55%"></span>
+          <span class="scale-tick" style="left:75%"></span>
+          <span id="scale-marker" class="scale-marker"></span>
+        </div>
+        <div class="scale-labels">
+          <span>閉じている</span><span>狭い</span><span>標準</span><span>広い</span>
+        </div>
+      </div>
+
       <p id="hero-note" class="hero-note"></p>
     </div>
 
@@ -95,7 +109,15 @@
     </div>
 
     <div class="card">
-      <h2>6軸のスコア</h2>
+      <h2>6軸のプロファイル</h2>
+
+      <div class="radar-wrap">
+        <svg id="radar" viewBox="-45 0 450 356" role="group" aria-labelledby="radar-title"><title id="radar-title">6軸のレーダーチャート</title></svg>
+        <div id="radar-tip" class="tip" hidden></div>
+      </div>
+      <div id="radar-legend" class="legend"></div>
+      <p class="chart-note">外側ほど値が大きい。<b>▲</b>の付いた2軸だけは、外側へ伸びるほど負荷が大きいことを示す。</p>
+
       <div id="meters" class="meters"></div>
       <details class="table-view">
         <summary>数値で見る</summary>
