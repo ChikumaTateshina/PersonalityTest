@@ -19,13 +19,22 @@ const state = {
 
 /* ---------- 採点 ---------------------------------------------------- */
 
+/* 回答スタイルの補正。
+   道具的志向と感情摩耗には逆転項目が置けていないため、素点のままだと
+   「全部そう」と答えるだけで両軸が振り切れてしまう。そこで中心を
+   目盛りの真ん中(3)ではなく、その人自身の平均へ 0.7 だけ寄せる。 */
+const ACQ_K = 0.7;
+
 function scoreAll(answers) {
   const raw = {}, max = {};
   DIMENSIONS.forEach((d) => { raw[d.key] = 0; max[d.key] = 0; });
 
+  const mean = answers.reduce((a, b) => a + b, 0) / answers.length;
+  const center = 3 + ACQ_K * (mean - 3);
+
   ITEMS.forEach((item, i) => {
     const r = answers[i];
-    const x = (r - 3) / 2;
+    const x = (r - center) / 2;
     for (const k in item.w) {
       raw[k] += item.w[k] * x;
       max[k] += Math.abs(item.w[k]);
@@ -44,7 +53,7 @@ function scoreAll(answers) {
 function rangeOfMotion(s) {
   const base =
     0.30 * s.E + 0.12 * s.P + 0.28 * s.G + 0.20 * s.A + 0.10 * (100 - s.M);
-  const v = base * (1 - 0.25 * (s.F / 100));
+  const v = base * (1 - 0.25 * ((s.F - 50) / 100));   // F=50 で等倍。中立回答が 50 になる
   return Math.max(0, Math.min(100, Math.round(v)));
 }
 
@@ -62,7 +71,7 @@ function pickTypes(s) {
 
   return {
     primary: scored[0].type,
-    secondary: (scored[1].d - scored[0].d < 6) ? scored[1].type : null
+    secondary: (scored[1].d - scored[0].d < 1.5) ? scored[1].type : null
   };
 }
 
@@ -187,9 +196,9 @@ function renderResult(answers) {
 }
 
 function romNote(v) {
-  if (v >= 75) return '感じる力が大きく開いています。守りの設計が要ります。';
-  if (v >= 55) return '一般的な範囲で動いています。';
-  if (v >= 35) return '動きはあるが、狭くなっています。';
+  if (v >= 66) return '感じる力が大きく開いています。守りの設計が要ります。';
+  if (v >= 48) return '一般的な範囲で動いています。';
+  if (v >= 32) return '動きはあるが、狭くなっています。';
   return '可動域がかなり狭い状態です。原因は性格とは限りません。';
 }
 

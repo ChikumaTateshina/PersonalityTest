@@ -322,7 +322,7 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
 }
 .scale-labels {
   display: grid;
-  grid-template-columns: 35fr 20fr 20fr 25fr;
+  grid-template-columns: 32fr 16fr 18fr 34fr;
   margin-top: 7px;
   font-size: 10.5px;
   color: var(--text-muted);
