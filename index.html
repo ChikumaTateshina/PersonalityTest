@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>心の在処テスト — 人の心の「あるなし」を測る</title>
+<meta name="description" content="他者の感情に対する反応のしかたを6つの軸で測る、ウェブ人格診断。結果が厳しいものであっても、必ず行動の目安を併記します。">
+<meta property="og:title" content="心の在処テスト">
+<meta property="og:description" content="人の心の「あるなし」を6軸で測る自己観察テスト。全32問・約5分。">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ============================ 導入 ============================ -->
+  <section id="intro">
+    <header class="site-head">
+      <p class="eyebrow">WEB PERSONALITY TEST</p>
+      <h1>心の在処<span class="sub">テスト</span></h1>
+      <p class="lede">
+        「自分には人の心があるのだろうか」——その問いを、性格の善悪ではなく、
+        <strong>反応の設計</strong>として測ります。全<span id="total-count">32</span>問、約5分。
+      </p>
+    </header>
+
+    <div class="card">
+      <h2>このテストが測るもの</h2>
+      <ul class="dim-list">
+        <li><b>情動感応</b><span>他者の感情が、自分の身体に伝わる強さ</span></li>
+        <li><b>視点推論</b><span>他者の内側を、頭で読み取る精度</span></li>
+        <li><b>良心反応</b><span>誰かを傷つけたときに返ってくる信号</span></li>
+        <li><b>関係接続</b><span>つながりを自分の一部として扱う度合い</span></li>
+        <li><b>道具的志向</b><span>人を手段として扱う回路の強さ</span></li>
+        <li><b>感情摩耗</b><span>かつて動いていたものが、鈍っている度合い</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>先に断っておくこと</h2>
+      <ul class="notes">
+        <li>結果は<strong>厳しいものになることがあります</strong>。そのかわり、どの結果にも必ず行動の目安を付けます。読んで終わりにはしません。</li>
+        <li>設問は、答えがどの結果につながるか分かりにくいように作ってあります。<strong>直感で、正直に</strong>答えるほど精度が上がります。</li>
+        <li>これは医学的診断ではありません。自己観察の道具です。</li>
+        <li>回答はどこにも送信されません。すべてブラウザの中だけで処理されます。</li>
+      </ul>
+    </div>
+
+    <button id="start-btn" class="primary">はじめる</button>
+  </section>
+
+  <!-- ============================ 設問 ============================ -->
+  <section id="quiz" hidden>
+    <div class="quiz-top">
+      <span id="q-counter" class="counter">1 / 32</span>
+      <div id="q-progress" class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="32" aria-valuenow="0">
+        <div id="q-progress-fill" class="progress-fill"></div>
+      </div>
+    </div>
+
+    <p id="q-text" class="q-text" tabindex="-1" aria-live="polite"></p>
+
+    <div id="q-options" class="options"></div>
+
+    <div class="quiz-foot">
+      <button id="q-back" class="ghost">← 戻る</button>
+      <span class="hint">キーボードの 1〜5 でも回答できます</span>
+    </div>
+  </section>
+
+  <!-- ============================ 結果 ============================ -->
+  <section id="result" hidden>
+
+    <div class="hero">
+      <p class="hero-label">心の可動域</p>
+      <p id="hero-value" class="hero-value">0</p>
+      <p class="hero-unit">/ 100</p>
+      <p id="hero-note" class="hero-note"></p>
+    </div>
+
+    <div class="card type-card">
+      <h2 id="type-name">—</h2>
+      <p id="type-tagline" class="type-tagline"></p>
+      <p id="type-verdict" class="type-verdict"></p>
+      <div id="type-body" class="type-body"></div>
+
+      <h3>起きやすいこと</h3>
+      <p id="type-risk" class="risk"></p>
+
+      <h3>対処法（行動の目安）</h3>
+      <ol id="type-actions" class="actions"></ol>
+
+      <div id="type-secondary" class="secondary" hidden></div>
+    </div>
+
+    <div class="card">
+      <h2>6軸のスコア</h2>
+      <div id="meters" class="meters"></div>
+      <details class="table-view">
+        <summary>数値で見る</summary>
+        <div id="score-table"></div>
+      </details>
+    </div>
+
+    <div class="card caution">
+      <h2>相談を検討したほうがよい合図</h2>
+      <ul class="notes">
+        <li>感じない・動けない状態が<strong>2週間以上</strong>続いている</li>
+        <li>対人トラブルが同じ形で<strong>繰り返されている</strong></li>
+        <li>自分や他人を傷つける考えが浮かぶ</li>
+        <li>生活（睡眠・仕事・食事）に支障が出ている</li>
+      </ul>
+      <p class="hotline">
+        こころの健康相談統一ダイヤル <b>0570-064-556</b>　/
+        よりそいホットライン <b>0120-279-338</b>　/
+        いのちの電話 <b>0570-783-556</b><br>
+        <span class="muted">※ 日本国内の窓口です。緊急時は 119 番。</span>
+      </p>
+    </div>
+
+    <div class="result-foot">
+      <button id="copy-btn" class="ghost">結果をコピー</button>
+      <button id="restart-btn" class="primary">もう一度やる</button>
+    </div>
+  </section>
+
+  <footer class="site-foot">
+    <p>心の在処テスト — 自己観察のための非医学的ツールです。結果は状態によって変動します。</p>
+  </footer>
+
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
