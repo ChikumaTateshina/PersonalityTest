@@ -10,12 +10,12 @@ const state = {
   order: [],        // 出題順（ITEMS のインデックス）
   answers: [],      // ITEMS の並び順に対応した回答（1..5 / null）
   pos: 0,
-  compare: 'type',  // レーダーの比較対象: 'type' | 'avg'
+  compare: 'type',  // レーダーの比較対象: 'type' | 'avg'（avg は集計が有効なときだけ）
   last: null        // 直近の結果（比較対象の切り替えで再描画するため）
 };
 
-/* 参加者の集計。endpoint 未設定・取得失敗時は avg が null のままで、平均は一切出さない。 */
-const stats = { n: 0, avg: null };
+/* stats（参加者の集計）と集計まわりの処理は collect.js が持つ。
+   既定では無効なので、stats は空のまま＝平均は一切表示されない。 */
 
 /* ---------- 採点 ---------------------------------------------------- */
 
@@ -181,7 +181,7 @@ function renderResult(answers) {
   renderRadar(s, primary);
   renderMeters(s);
   renderTable(s, rom);
-  renderConsent();
+  collectOnResult();
   $('#copy-btn').textContent = '結果をコピー';
   $('#copy-btn').dataset.text = buildShareText(s, rom, primary);
 }
@@ -381,126 +381,6 @@ function buildShareText(s, rom, type) {
   ].join('\n');
 }
 
-/* ---------- 送信の同意と集計 ---------------------------------------- */
-/* endpoint 未設定なら、この節の処理は何も起きない（送信も取得もしない）。 */
-
-const CONSENT_KEY = 'kokoro.consent.v1';
-
-function consentLog() {
-  try { return JSON.parse(localStorage.getItem(CONSENT_KEY) || '{}'); } catch { return {}; }
-}
-function saveConsent(code, value) {
-  try {
-    const log = consentLog();
-    log[code] = value;
-    localStorage.setItem(CONSENT_KEY, JSON.stringify(log));
-  } catch { /* localStorage が使えなくても動作は続ける */ }
-}
-
-/* 送信する中身。ここに書かれているものが送るもののすべて。 */
-function buildPayload() {
-  const { s, rom, type } = state.last;
-  const d = new Date();
-  const date = [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, '0'),
-    String(d.getDate()).padStart(2, '0')
-  ].join('-');                                  // 日付だけ。時刻は載せない
-  return {
-    v: 1, date, type: type.id, rom,
-    E: s.E, P: s.P, G: s.G, A: s.A, M: s.M, F: s.F
-  };
-}
-
-function renderConsent() {
-  const card = $('#consent');
-  if (!COLLECT.endpoint || !state.last) { card.hidden = true; return; }
-  card.hidden = false;
-  $('#consent-minn').textContent = String(COLLECT.minN);
-  paintConsent(consentLog()[state.last.code] || null);
-}
-
-function paintConsent(status) {
-  const actions = $('#consent-actions');
-  const yes = $('#consent-yes');
-  const no = $('#consent-no');
-  const st = $('#consent-status');
-
-  if (status === 'sent') {
-    actions.hidden = true;
-    st.textContent = '送信しました。ありがとうございます。';
-  } else if (status === 'declined') {
-    actions.hidden = false;
-    no.hidden = true;
-    yes.textContent = 'やはり送信する';
-    st.textContent = '送信しませんでした。この結果は端末の外に出ていません。';
-  } else {
-    actions.hidden = false;
-    no.hidden = false;
-    yes.textContent = '送信する';
-    st.textContent = '';
-  }
-}
-
-async function submitResult() {
-  const yes = $('#consent-yes');
-  const st = $('#consent-status');
-  yes.disabled = true;
-  st.textContent = '送信中…';
-  try {
-    await fetch(COLLECT.endpoint, {
-      method: 'POST',
-      mode: 'no-cors',                                   // プリフライトを避ける
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(buildPayload())
-    });
-    saveConsent(state.last.code, 'sent');
-    paintConsent('sent');
-    fetchStats();                                        // 自分の分を含めた平均に更新
-  } catch {
-    st.textContent = '送信できませんでした。通信環境を確認して、もう一度お試しください。';
-  } finally {
-    yes.disabled = false;
-  }
-}
-
-async function fetchStats() {
-  if (!COLLECT.endpoint) return;
-  const url = COLLECT.endpoint +
-    (COLLECT.endpoint.includes('?') ? '&' : '?') + 'stats=1&t=' + Date.now();
-  try {
-    const res = await fetch(url, { method: 'GET' });
-    const j = await res.json();
-    if (j && typeof j.n === 'number') {
-      stats.n = j.n;
-      stats.avg = (j.avg && typeof j.avg.E === 'number' && j.n >= COLLECT.minN) ? j.avg : null;
-    }
-  } catch { /* 取れなければ平均は出さない。結果表示そのものには影響しない */ }
-  updateCompareUI();
-}
-
-function updateCompareUI() {
-  const sw = $('#compare-switch');
-  const has = !!stats.avg;
-  sw.hidden = !has;
-  if (!has && state.compare === 'avg') state.compare = 'type';
-  if (has) sw.querySelector('[data-cmp="avg"]').textContent = `参加者の平均 (n=${stats.n})`;
-  if (state.last) {
-    renderRadar(state.last.s, state.last.type);
-    renderTable(state.last.s, state.last.rom);
-  }
-}
-
-function setCompare(mode) {
-  state.compare = mode;
-  $('#compare-switch').querySelectorAll('button').forEach((b) => {
-    const on = b.dataset.cmp === mode;
-    b.classList.toggle('is-on', on);
-    b.setAttribute('aria-pressed', String(on));
-  });
-  if (state.last) renderRadar(state.last.s, state.last.type);
-}
-
 /* ---------- URL からの復元 ------------------------------------------ */
 
 function tryRestoreFromHash() {
@@ -522,15 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#start-btn').addEventListener('click', startQuiz);
   $('#q-back').addEventListener('click', goBack);
   $('#restart-btn').addEventListener('click', startQuiz);
-  $('#consent-yes').addEventListener('click', submitResult);
-  $('#consent-no').addEventListener('click', () => {
-    saveConsent(state.last.code, 'declined');
-    paintConsent('declined');
-  });
-  $('#compare-switch').querySelectorAll('button').forEach((b) => {
-    b.addEventListener('click', () => setCompare(b.dataset.cmp));
-  });
-  fetchStats();
+  collectInit();   // 集計が有効なときだけ、同意カードと比較スイッチを挿入する
 
   $('#copy-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;

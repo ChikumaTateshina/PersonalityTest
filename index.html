@@ -111,11 +111,6 @@
     <div class="card">
       <h2>6軸のプロファイル</h2>
 
-      <div id="compare-switch" class="switch" role="group" aria-label="比較対象" hidden>
-        <button type="button" data-cmp="type" class="is-on" aria-pressed="true">タイプの代表像</button>
-        <button type="button" data-cmp="avg" aria-pressed="false">参加者の平均</button>
-      </div>
-
       <div class="radar-wrap">
         <svg id="radar" viewBox="-45 0 450 356" role="group" aria-labelledby="radar-title"><title id="radar-title">6軸のレーダーチャート</title></svg>
         <div id="radar-tip" class="tip" hidden></div>
@@ -128,35 +123,6 @@
         <summary>数値で見る</summary>
         <div id="score-table"></div>
       </details>
-    </div>
-
-    <div id="consent" class="card consent" hidden>
-      <h2>この結果を送信しますか？</h2>
-      <p class="consent-lead">
-        参加者全体の平均を出すためのデータとして、この結果を提供できます。
-        <strong>任意です。</strong>送信してもしなくても、表示される結果は変わりません。
-      </p>
-
-      <dl class="consent-detail">
-        <div>
-          <dt>送るもの</dt>
-          <dd>6軸のスコア（0〜100の整数）、心の可動域、判定されたタイプ、送信日（日付のみ）</dd>
-        </div>
-        <div>
-          <dt>送らないもの</dt>
-          <dd>設問ごとの回答、氏名やメールなどの個人情報、ID・Cookie などの識別子、送信時刻、閲覧環境</dd>
-        </div>
-        <div>
-          <dt>使い道</dt>
-          <dd>参加者の平均を出すことだけに使います。個々の送信内容が単体で表示されることはありません（<span id="consent-minn">5</span>人に満たないあいだは平均も表示しません）。</dd>
-        </div>
-      </dl>
-
-      <div id="consent-actions" class="consent-actions">
-        <button id="consent-yes" class="primary">送信する</button>
-        <button id="consent-no" class="ghost">送信しない</button>
-      </div>
-      <p id="consent-status" class="consent-status" role="status"></p>
     </div>
 
     <div class="card caution">
@@ -187,8 +153,8 @@
 
 </div>
 
-<script src="config.js"></script>
 <script src="data.js"></script>
+<script src="collect.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
