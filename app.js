@@ -7,10 +7,15 @@ const $ = (sel) => document.querySelector(sel);
 const TYPE_WEIGHT = { E: 1.2, P: 0.8, G: 1.2, A: 1.0, M: 1.3, F: 1.0 };
 
 const state = {
-  order: [],      // 出題順（ITEMS のインデックス）
-  answers: [],    // ITEMS の並び順に対応した回答（1..5 / null）
-  pos: 0
+  order: [],        // 出題順（ITEMS のインデックス）
+  answers: [],      // ITEMS の並び順に対応した回答（1..5 / null）
+  pos: 0,
+  compare: 'type',  // レーダーの比較対象: 'type' | 'avg'
+  last: null        // 直近の結果（比較対象の切り替えで再描画するため）
 };
+
+/* 参加者の集計。endpoint 未設定・取得失敗時は avg が null のままで、平均は一切出さない。 */
+const stats = { n: 0, avg: null };
 
 /* ---------- 採点 ---------------------------------------------------- */
 
@@ -149,6 +154,7 @@ function renderResult(answers) {
   const s = scoreAll(answers);
   const rom = rangeOfMotion(s);
   const { primary, secondary } = pickTypes(s);
+  state.last = { s, rom, type: primary, code: answers.join('') };
 
   $('#hero-value').textContent = rom;
   $('#hero-note').textContent = romNote(rom);
@@ -175,6 +181,7 @@ function renderResult(answers) {
   renderRadar(s, primary);
   renderMeters(s);
   renderTable(s, rom);
+  renderConsent();
   $('#copy-btn').textContent = '結果をコピー';
   $('#copy-btn').dataset.text = buildShareText(s, rom, primary);
 }
@@ -245,10 +252,30 @@ function el(name, attrs) {
   return n;
 }
 
+function comparison(type) {
+  if (state.compare === 'avg' && stats.avg) {
+    return {
+      values: DIMENSIONS.map((d) => Math.round(stats.avg[d.key])),
+      name: `参加者の平均（n=${stats.n}）`,
+      short: '平均',
+      cls: 'series-avg',
+      sw: 'sw3'
+    };
+  }
+  return {
+    values: DIMENSIONS.map((d) => type.target[d.key]),
+    name: `${type.name}の代表像`,
+    short: '代表像',
+    cls: 'series-ref',
+    sw: 'sw2'
+  };
+}
+
 function renderRadar(s, type) {
   const svg = $('#radar');
+  const cmp = comparison(type);
   const you = DIMENSIONS.map((d) => s[d.key]);
-  const ref = DIMENSIONS.map((d) => type.target[d.key]);
+  const ref = cmp.values;
 
   svg.querySelectorAll('g,polygon,line,circle,text').forEach((n) => n.remove());
   svg.querySelector('title').textContent =
@@ -283,7 +310,7 @@ function renderRadar(s, type) {
   svg.appendChild(gLab);
 
   // 代表像（線のみ）→ あなた（塗り＋線）の順に重ねる
-  svg.appendChild(el('polygon', { class: 'series-ref', points: poly(ref) }));
+  svg.appendChild(el('polygon', { class: cmp.cls, points: poly(ref) }));
   svg.appendChild(el('polygon', { class: 'series-you', points: poly(you) }));
 
   const gDots = el('g', { class: 'radar-dots' });
@@ -299,12 +326,12 @@ function renderRadar(s, type) {
   DIMENSIONS.forEach((d, i) => {
     const [x, y] = radarPoint(i, Math.max(you[i], 12));
     const c = el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 17, tabindex: '0', role: 'img' });
-    c.setAttribute('aria-label', `${d.name} あなた ${you[i]}、${type.name}の代表像 ${ref[i]}`);
+    c.setAttribute('aria-label', `${d.name} あなた ${you[i]}、${cmp.name} ${ref[i]}`);
     const showTip = () => {
       tip.innerHTML =
         `<b>${d.name}${d.burden ? ' ▲' : ''}</b>` +
         `<span><i class="sw sw1"></i>あなた <b>${you[i]}</b></span>` +
-        `<span><i class="sw sw2"></i>代表像 <b>${ref[i]}</b></span>`;
+        `<span><i class="sw ${cmp.sw}"></i>${cmp.short} <b>${ref[i]}</b></span>`;
       tip.hidden = false;
       const wr = $('.radar-wrap').getBoundingClientRect();
       const cr = c.getBoundingClientRect();
@@ -322,17 +349,25 @@ function renderRadar(s, type) {
 
   $('#radar-legend').innerHTML =
     `<span class="lg"><i class="sw sw1"></i>あなた</span>` +
-    `<span class="lg"><i class="sw sw2"></i>${type.name}の代表像</span>`;
+    `<span class="lg"><i class="sw ${cmp.sw}"></i>${cmp.name}</span>`;
 }
 function renderTable(s, rom) {
+  const hasAvg = !!stats.avg;
+  const avgHead = hasAvg ? `<th scope="col">参加者平均 (n=${stats.n})</th>` : '';
+  const avgCell = (k) => hasAvg ? `<td>${Math.round(stats.avg[k])}</td>` : '';
+
   const rows = DIMENSIONS.map(
-    (d) => `<tr><th scope="row">${d.name}</th><td>${s[d.key]}</td><td>${d.burden ? '高いほど負荷' : '高いほど強い'}</td></tr>`
+    (d) => `<tr><th scope="row">${d.name}</th><td>${s[d.key]}</td>${avgCell(d.key)}` +
+           `<td>${d.burden ? '高いほど負荷' : '高いほど強い'}</td></tr>`
   ).join('');
+
+  const romAvg = hasAvg && typeof stats.avg.rom === 'number' ? `<td>${Math.round(stats.avg.rom)}</td>` : (hasAvg ? '<td>—</td>' : '');
+
   $('#score-table').innerHTML = `
     <table>
       <caption>スコア一覧（0〜100）</caption>
-      <thead><tr><th scope="col">軸</th><th scope="col">値</th><th scope="col">向き</th></tr></thead>
-      <tbody>${rows}<tr><th scope="row">心の可動域（総合）</th><td>${rom}</td><td>高いほど広い</td></tr></tbody>
+      <thead><tr><th scope="col">軸</th><th scope="col">あなた</th>${avgHead}<th scope="col">向き</th></tr></thead>
+      <tbody>${rows}<tr><th scope="row">心の可動域（総合）</th><td>${rom}</td>${romAvg}<td>高いほど広い</td></tr></tbody>
     </table>`;
 }
 
@@ -344,6 +379,126 @@ function buildShareText(s, rom, type) {
     dims,
     location.href
   ].join('\n');
+}
+
+/* ---------- 送信の同意と集計 ---------------------------------------- */
+/* endpoint 未設定なら、この節の処理は何も起きない（送信も取得もしない）。 */
+
+const CONSENT_KEY = 'kokoro.consent.v1';
+
+function consentLog() {
+  try { return JSON.parse(localStorage.getItem(CONSENT_KEY) || '{}'); } catch { return {}; }
+}
+function saveConsent(code, value) {
+  try {
+    const log = consentLog();
+    log[code] = value;
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(log));
+  } catch { /* localStorage が使えなくても動作は続ける */ }
+}
+
+/* 送信する中身。ここに書かれているものが送るもののすべて。 */
+function buildPayload() {
+  const { s, rom, type } = state.last;
+  const d = new Date();
+  const date = [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0')
+  ].join('-');                                  // 日付だけ。時刻は載せない
+  return {
+    v: 1, date, type: type.id, rom,
+    E: s.E, P: s.P, G: s.G, A: s.A, M: s.M, F: s.F
+  };
+}
+
+function renderConsent() {
+  const card = $('#consent');
+  if (!COLLECT.endpoint || !state.last) { card.hidden = true; return; }
+  card.hidden = false;
+  $('#consent-minn').textContent = String(COLLECT.minN);
+  paintConsent(consentLog()[state.last.code] || null);
+}
+
+function paintConsent(status) {
+  const actions = $('#consent-actions');
+  const yes = $('#consent-yes');
+  const no = $('#consent-no');
+  const st = $('#consent-status');
+
+  if (status === 'sent') {
+    actions.hidden = true;
+    st.textContent = '送信しました。ありがとうございます。';
+  } else if (status === 'declined') {
+    actions.hidden = false;
+    no.hidden = true;
+    yes.textContent = 'やはり送信する';
+    st.textContent = '送信しませんでした。この結果は端末の外に出ていません。';
+  } else {
+    actions.hidden = false;
+    no.hidden = false;
+    yes.textContent = '送信する';
+    st.textContent = '';
+  }
+}
+
+async function submitResult() {
+  const yes = $('#consent-yes');
+  const st = $('#consent-status');
+  yes.disabled = true;
+  st.textContent = '送信中…';
+  try {
+    await fetch(COLLECT.endpoint, {
+      method: 'POST',
+      mode: 'no-cors',                                   // プリフライトを避ける
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(buildPayload())
+    });
+    saveConsent(state.last.code, 'sent');
+    paintConsent('sent');
+    fetchStats();                                        // 自分の分を含めた平均に更新
+  } catch {
+    st.textContent = '送信できませんでした。通信環境を確認して、もう一度お試しください。';
+  } finally {
+    yes.disabled = false;
+  }
+}
+
+async function fetchStats() {
+  if (!COLLECT.endpoint) return;
+  const url = COLLECT.endpoint +
+    (COLLECT.endpoint.includes('?') ? '&' : '?') + 'stats=1&t=' + Date.now();
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    const j = await res.json();
+    if (j && typeof j.n === 'number') {
+      stats.n = j.n;
+      stats.avg = (j.avg && typeof j.avg.E === 'number' && j.n >= COLLECT.minN) ? j.avg : null;
+    }
+  } catch { /* 取れなければ平均は出さない。結果表示そのものには影響しない */ }
+  updateCompareUI();
+}
+
+function updateCompareUI() {
+  const sw = $('#compare-switch');
+  const has = !!stats.avg;
+  sw.hidden = !has;
+  if (!has && state.compare === 'avg') state.compare = 'type';
+  if (has) sw.querySelector('[data-cmp="avg"]').textContent = `参加者の平均 (n=${stats.n})`;
+  if (state.last) {
+    renderRadar(state.last.s, state.last.type);
+    renderTable(state.last.s, state.last.rom);
+  }
+}
+
+function setCompare(mode) {
+  state.compare = mode;
+  $('#compare-switch').querySelectorAll('button').forEach((b) => {
+    const on = b.dataset.cmp === mode;
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  if (state.last) renderRadar(state.last.s, state.last.type);
 }
 
 /* ---------- URL からの復元 ------------------------------------------ */
@@ -367,6 +522,15 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#start-btn').addEventListener('click', startQuiz);
   $('#q-back').addEventListener('click', goBack);
   $('#restart-btn').addEventListener('click', startQuiz);
+  $('#consent-yes').addEventListener('click', submitResult);
+  $('#consent-no').addEventListener('click', () => {
+    saveConsent(state.last.code, 'declined');
+    paintConsent('declined');
+  });
+  $('#compare-switch').querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => setCompare(b.dataset.cmp));
+  });
+  fetchStats();
 
   $('#copy-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;

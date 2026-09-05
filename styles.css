@@ -23,6 +23,7 @@
   --s1:      #2a78d6;              /* 系列1 = あなた */
   --s1-fill: rgba(42,120,214,.16);
   --s2:      #eb6834;              /* 系列2 = 型の代表像 */
+  --s3:      #1baf7a;              /* 系列3 = 参加者の平均 */
 
   --shadow: 0 1px 2px rgba(11,11,11,.05), 0 8px 24px rgba(11,11,11,.05);
 
@@ -49,6 +50,7 @@
     --s1:      #3987e5;
     --s1-fill: rgba(57,135,229,.22);
     --s2:      #d95926;
+    --s3:      #199e70;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
   }
 }
@@ -327,6 +329,33 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
   text-align: center;
 }
 
+/* ---------- 結果：比較対象スイッチ ----------------------------------- */
+
+.switch {
+  display: inline-flex;
+  gap: 2px;                       /* 塗り同士は地の色の隙間で分ける */
+  padding: 2px;
+  margin-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-0);
+}
+.switch button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.switch button:hover { color: var(--text-primary); }
+.switch button.is-on {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+
 /* ---------- 結果：レーダーチャート ----------------------------------- */
 
 .radar-wrap { position: relative; margin-top: 4px; }
@@ -346,6 +375,7 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
 }
 
 .series-ref { fill: none;            stroke: var(--s2); stroke-width: 1.5; stroke-linejoin: round; }
+.series-avg { fill: none;            stroke: var(--s3); stroke-width: 1.5; stroke-linejoin: round; }
 .series-you { fill: var(--s1-fill);  stroke: var(--s1); stroke-width: 2; stroke-linejoin: round; }
 
 .dot-you { fill: var(--s1); stroke: var(--surface-1); stroke-width: 2; }
@@ -388,6 +418,7 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
 .sw { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .sw1 { background: var(--s1); }
 .sw2 { background: var(--s2); }
+.sw3 { background: var(--s3); }
 
 .chart-note {
   margin: 10px 0 0;
@@ -526,6 +557,48 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
 .table-view td { font-variant-numeric: tabular-nums; }
 .table-view thead th { color: var(--text-muted); font-weight: 500; font-size: 12px; }
 
+/* ---------- 結果：データ提供の同意 ----------------------------------- */
+
+.consent-lead {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+}
+.consent-lead strong { color: var(--text-primary); }
+
+.consent-detail { margin: 0 0 20px; }
+.consent-detail > div {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.consent-detail dt {
+  flex: 0 0 5.6em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.consent-detail dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.consent-actions { display: flex; gap: 10px; }
+.consent-actions .primary,
+.consent-actions .ghost {
+  flex: 1 1 0;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.consent-status {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-height: 1.2em;
+}
+
 /* ---------- 結果：注意喚起 ------------------------------------------- */
 
 .caution .hotline {
@@ -561,4 +634,9 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
   .dim-list li { flex-direction: column; gap: 2px; }
   .dim-list b { flex: none; }
   .result-foot { flex-direction: column; }
+  .consent-detail > div { flex-direction: column; gap: 2px; }
+  .consent-detail dt { flex: none; }
+  .consent-actions { flex-direction: column; }
+  .switch { display: flex; }
+  .switch button { flex: 1; }
 }
