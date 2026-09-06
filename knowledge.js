@@ -383,7 +383,7 @@ function answerKnowledge(value) {
   if (++knowledge.pos < KNOWLEDGE_ITEMS.length) renderKnowledgeQuestion();
   else {
     history.replaceState(null,'','#combined-v2='+knowledge.social.join('')+'.'+knowledge.answers.map(v=>v+1).join(''));
-    renderCombined(); show('combined-result'); $('#combined-title').focus();
+    renderCombined({ showReview: true }); show('combined-result'); $('#combined-title').focus();
   }
 }
 function addCombinedBar(label,value) {
@@ -392,7 +392,7 @@ function addCombinedBar(label,value) {
   const meter = document.createElement('meter'); meter.min=0; meter.max=100; meter.value=value; meter.setAttribute('aria-label',label);
   row.append(name,meter); $('#combined-bars').appendChild(row);
 }
-function renderCombined() {
+function renderCombined({ showReview = false } = {}) {
   const r = combinedEvaluation(knowledge.social,knowledge.answers);
   $('#combined-value').textContent=r.total;
   $('#combined-name').textContent=r.text;
@@ -407,6 +407,9 @@ function renderCombined() {
   $('#combined-actions').replaceChildren();
   [...weakSocial.map(d=>d.name+'：'+BANDS[d.key][bandOf(d.key,r.skills[d.key])][1]),...weakKnowledge.map(d=>d.name+'：'+d.action)].forEach(t=>{const li=document.createElement('li');li.textContent=t;$('#combined-actions').appendChild(li);});
   $('#knowledge-review').replaceChildren();
+  $('#knowledge-review-card').hidden = !showReview;
+  // 正解・解説はこの画面で回答を完了したときだけ生成する。共有URL復元では生成しない。
+  if (!showReview) return;
   KNOWLEDGE_ITEMS.forEach((q,i)=>{
     const item=document.createElement('details'), summary=document.createElement('summary'), p=document.createElement('p');
     summary.textContent=(i+1)+'. '+(knowledge.answers[i]===q.correct?'正解':'要確認')+' — '+q.q;
