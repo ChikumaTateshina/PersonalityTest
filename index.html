@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>心の在処テスト — 人の心の「あるなし」を測る</title>
-<meta name="description" content="他者の感情に対する反応のしかたを6つの軸で測る、ウェブ人格診断。結果が厳しいものであっても、必ず行動の目安を併記します。">
-<meta property="og:title" content="心の在処テスト">
-<meta property="og:description" content="人の心の「あるなし」を6軸で測る自己観察テスト。全32問・約5分。">
+<title>対人スキル診断 — 人の心を、どれだけ読み、どれだけ寄り添えているか</title>
+<meta name="description" content="読み取り・傾聴・寄り添い・自己制御・境界・修復。対人スキルを6つの技術に分けて、場面ごとの行動選択から到達度を測ります。低い結果には必ず練習メニューを併記します。">
+<meta property="og:title" content="対人スキル診断">
+<meta property="og:description" content="人の心をどれだけ読み、どれだけ寄り添えているか。対人スキルを6つの技術に分けて測る場面判断テスト。全32問・約8分。">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,32 +17,33 @@
   <!-- ============================ 導入 ============================ -->
   <section id="intro">
     <header class="site-head">
-      <p class="eyebrow">WEB PERSONALITY TEST</p>
-      <h1>心の在処<span class="sub">テスト</span></h1>
+      <p class="eyebrow">SOCIAL SKILL ASSESSMENT</p>
+      <h1>対人スキル<span class="sub">診断</span></h1>
       <p class="lede">
-        「自分には人の心があるのだろうか」——その問いを、性格の善悪ではなく、
-        <strong>反応の設計</strong>として測ります。全<span id="total-count">32</span>問、約5分。
+        人の心をどれだけ読み、どれだけ寄り添えているか——それを性格ではなく、
+        <strong>理解・傾聴・デリカシー・社会性</strong>として測ります。全<span id="total-count">32</span>問、約8分。
       </p>
     </header>
 
     <div class="card">
-      <h2>このテストが測るもの</h2>
+      <h2>測る6つの技術</h2>
       <ul class="dim-list">
-        <li><b>情動感応</b><span>他者の感情が、自分の身体に伝わる強さ</span></li>
-        <li><b>視点推論</b><span>他者の内側を、頭で読み取る精度</span></li>
-        <li><b>良心反応</b><span>誰かを傷つけたときに返ってくる信号</span></li>
-        <li><b>関係接続</b><span>つながりを自分の一部として扱う度合い</span></li>
-        <li><b>道具的志向</b><span>人を手段として扱う回路の強さ</span></li>
-        <li><b>感情摩耗</b><span>かつて動いていたものが、鈍っている度合い</span></li>
+        <li><b>読み取り</b><span>相手の状態を、決めつけずに確かめる技術</span></li>
+        <li><b>傾聴</b><span>遮らず、相手に話させ、理解を確かめる技術</span></li>
+        <li><b>寄り添い</b><span>相手が求めているものを選んで返す技術</span></li>
+        <li><b>自己制御</b><span>自分の動揺を、対人場面で扱う技術</span></li>
+        <li><b>距離と配慮</b><span>私生活・秘密・断る権利を尊重する技術</span></li>
+        <li><b>修復</b><span>こじれた関係を、自分から戻しにいく技術</span></li>
       </ul>
     </div>
 
     <div class="card">
       <h2>先に断っておくこと</h2>
       <ul class="notes">
-        <li>結果は<strong>厳しいものになることがあります</strong>。そのかわり、どの結果にも必ず行動の目安を付けます。読んで終わりにはしません。</li>
-        <li>設問は、答えがどの結果につながるか分かりにくいように作ってあります。<strong>直感で、正直に</strong>答えるほど精度が上がります。</li>
-        <li>これは医学的診断ではありません。自己観察の道具です。</li>
+        <li>設問は「どう感じるか」ではなく<strong>「その場面で実際にどうするか」</strong>を尋ねます。理想ではなく、いつもの自分が取る行動を選んでください。</li>
+        <li>選択肢はどれも実際にありうる行動です。<strong>明らかな正解が並ばないように作ってあり、順番も毎回入れ替わります。</strong></li>
+        <li>結果は<strong>低く出ることがあります</strong>。ただし対人スキルは性格ではなく練習で増える技術なので、低い軸には必ず練習メニューを付けます。</li>
+        <li>これは医学的検査でも、人格の評価でもありません。</li>
         <li>回答はどこにも送信されません。すべてブラウザの中だけで処理されます。</li>
       </ul>
     </div>
@@ -59,13 +60,14 @@
       </div>
     </div>
 
-    <p id="q-text" class="q-text" tabindex="-1" aria-live="polite"></p>
+    <p id="q-scene" class="q-scene" tabindex="-1" aria-live="polite"></p>
+    <p id="q-text" class="q-text"></p>
 
     <div id="q-options" class="options"></div>
 
     <div class="quiz-foot">
       <button id="q-back" class="ghost">← 戻る</button>
-      <span class="hint">キーボードの 1〜5 でも回答できます</span>
+      <span class="hint">キーボードの 1〜4 でも選べます</span>
     </div>
   </section>
 
@@ -73,20 +75,20 @@
   <section id="result" hidden>
 
     <div class="hero">
-      <p class="hero-label">心の可動域</p>
+      <p class="hero-label">対人スキル総合</p>
       <p id="hero-value" class="hero-value">0</p>
       <p class="hero-unit">/ 100</p>
 
       <div class="scale">
         <div class="scale-track">
           <div id="scale-fill" class="scale-fill"></div>
-          <span class="scale-tick" style="left:32%"></span>
-          <span class="scale-tick" style="left:48%"></span>
-          <span class="scale-tick" style="left:66%"></span>
+          <span class="scale-tick" style="left:33%"></span>
+          <span class="scale-tick" style="left:50%"></span>
+          <span class="scale-tick" style="left:67%"></span>
           <span id="scale-marker" class="scale-marker"></span>
         </div>
         <div class="scale-labels">
-          <span>閉じている</span><span>狭い</span><span>標準</span><span>広い</span>
+          <span>これから</span><span>伸ばせる</span><span>標準</span><span>高い</span>
         </div>
       </div>
 
@@ -109,14 +111,14 @@
     </div>
 
     <div class="card">
-      <h2>6軸のプロファイル</h2>
+      <h2>6つの技術の到達度</h2>
 
       <div class="radar-wrap">
         <svg id="radar" viewBox="-45 0 450 356" role="group" aria-labelledby="radar-title"><title id="radar-title">6軸のレーダーチャート</title></svg>
         <div id="radar-tip" class="tip" hidden></div>
       </div>
       <div id="radar-legend" class="legend"></div>
-      <p class="chart-note">外側ほど値が大きい。<b>▲</b>の付いた2軸だけは、外側へ伸びるほど負荷が大きいことを示す。</p>
+      <p class="chart-note">外側ほど、その技術が身についている。へこんでいる方向が、いま練習の余地が大きいところ。</p>
 
       <div id="meters" class="meters"></div>
       <details class="table-view">
@@ -126,13 +128,14 @@
     </div>
 
     <div class="card caution">
-      <h2>相談を検討したほうがよい合図</h2>
+      <h2>練習だけでは足りないかもしれない合図</h2>
       <ul class="notes">
-        <li>感じない・動けない状態が<strong>2週間以上</strong>続いている</li>
-        <li>対人トラブルが同じ形で<strong>繰り返されている</strong></li>
+        <li>対人関係の苦痛が<strong>2週間以上</strong>続き、気分や睡眠に影響している</li>
+        <li>同じ形の対人トラブルが<strong>何年も繰り返されている</strong></li>
+        <li>人と会うこと自体を避けるようになり、生活が縮んでいる</li>
         <li>自分や他人を傷つける考えが浮かぶ</li>
-        <li>生活（睡眠・仕事・食事）に支障が出ている</li>
       </ul>
+      <p class="muted">スキルの練習で届く範囲を超えている場合があります。下は日本国内の相談窓口です。</p>
       <p class="hotline">
         こころの健康相談統一ダイヤル <b>0570-064-556</b>　/
         よりそいホットライン <b>0120-279-338</b>　/
@@ -148,7 +151,7 @@
   </section>
 
   <footer class="site-foot">
-    <p>心の在処テスト — 自己観察のための非医学的ツールです。結果は状態によって変動します。</p>
+    <p>対人スキル診断 — 練習のための非医学的ツールです。結果はその時点の行動選択を映したもので、固定的な能力ではありません。</p>
   </footer>
 
 </div>

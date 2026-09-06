@@ -1,5 +1,5 @@
 /* =====================================================================
- * 心の在処テスト — 集計用バックエンド（Google Apps Script）
+ * 対人スキル診断 — 集計用バックエンド（Google Apps Script）
  *
  * GitHub Pages は静的配信なので、送信されたデータを受ける場所が別に要る。
  * このファイルをスプレッドシートに紐づくスクリプトとして貼り、
@@ -7,7 +7,7 @@
  * 手順は README の「集計を有効にする」を参照。
  *
  * 設計方針
- *  - 受け取るのは 6軸のスコア・総合値・タイプ・日付だけ。
+ *  - 受け取るのは 6技術の到達度・総合値・タイプ・日付だけ。
  *    個人を指すものは何も受け取らないし、記録もしない。
  *  - IP・User-Agent は Apps Script 側からそもそも参照できない。
  *    こちらからも一切書き出さない。
@@ -18,8 +18,8 @@
 var SHEET_NAME = 'responses';
 var MIN_N = 5;                  // config.js の minN と揃える
 var CACHE_SECONDS = 60;         // 集計結果のキャッシュ
-var TYPE_IDS = ['furnace', 'lamp', 'tower', 'mirror', 'tundra', 'hollow', 'code', 'bridge'];
-var AXES = ['E', 'P', 'G', 'A', 'M', 'F'];
+var TYPE_IDS = ['mediator', 'listener', 'analyst', 'caretaker', 'direct', 'avoidant', 'reactive', 'novice'];
+var AXES = ['R', 'L', 'C', 'S', 'B', 'M'];
 
 /* ---------- 受信 ----------------------------------------------------- */
 

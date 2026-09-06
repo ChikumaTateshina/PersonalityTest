@@ -1,14 +1,17 @@
 /* =====================================================================
- * 心の在処テスト — 進行と採点
+ * 対人スキル診断 — 進行と採点
  * ===================================================================== */
 
 const $ = (sel) => document.querySelector(sel);
 
-const TYPE_WEIGHT = { E: 1.2, P: 0.8, G: 1.2, A: 1.0, M: 1.3, F: 1.0 };
+/* タイプ判定で軸に掛ける重み。どの技術も等価に扱う。 */
+const TYPE_WEIGHT = { R: 1, L: 1, C: 1, S: 1, B: 1, M: 1 };
 
 const state = {
   order: [],        // 出題順（ITEMS のインデックス）
-  answers: [],      // ITEMS の並び順に対応した回答（1..5 / null）
+  optOrder: [],     // 設問ごとの選択肢の表示順（位置で覚えられないようにする）
+  curOrder: [],     // 表示中の設問の選択肢順（キーボード入力の対応づけ用）
+  answers: [],      // ITEMS の並び順に対応した「選んだ選択肢の元の番号」（1..4 / null）
   pos: 0,
   compare: 'type',  // レーダーの比較対象: 'type' | 'avg'（avg は集計が有効なときだけ）
   last: null        // 直近の結果（比較対象の切り替えで再描画するため）
@@ -17,44 +20,36 @@ const state = {
 /* stats（参加者の集計）と集計まわりの処理は collect.js が持つ。
    既定では無効なので、stats は空のまま＝平均は一切表示されない。 */
 
-/* ---------- 採点 ---------------------------------------------------- */
-
-/* 回答スタイルの補正。
-   道具的志向と感情摩耗には逆転項目が置けていないため、素点のままだと
-   「全部そう」と答えるだけで両軸が振り切れてしまう。そこで中心を
-   目盛りの真ん中(3)ではなく、その人自身の平均へ 0.7 だけ寄せる。 */
-const ACQ_K = 0.7;
+/* ---------- 採点 ----------------------------------------------------
+ * 軸スコア = 取れた点 / その軸の満点。
+ * 満点は「各設問でその軸に対して取りうる最大点」の合計なので、
+ * 100 は全設問でその軸の最善手を選んだ状態を指す。
+ * ------------------------------------------------------------------ */
 
 function scoreAll(answers) {
-  const raw = {}, max = {};
-  DIMENSIONS.forEach((d) => { raw[d.key] = 0; max[d.key] = 0; });
-
-  const mean = answers.reduce((a, b) => a + b, 0) / answers.length;
-  const center = 3 + ACQ_K * (mean - 3);
+  const got = {}, max = {};
+  DIMENSIONS.forEach((d) => { got[d.key] = 0; max[d.key] = 0; });
 
   ITEMS.forEach((item, i) => {
-    const r = answers[i];
-    const x = (r - center) / 2;
-    for (const k in item.w) {
-      raw[k] += item.w[k] * x;
-      max[k] += Math.abs(item.w[k]);
-    }
+    const chosen = item.opts[answers[i] - 1];
+    DIMENSIONS.forEach((d) => {
+      const best = Math.max(...item.opts.map((o) => o.w[d.key] || 0));
+      max[d.key] += best;
+      if (chosen) got[d.key] += (chosen.w[d.key] || 0);
+    });
   });
 
   const s = {};
   DIMENSIONS.forEach((d) => {
-    const v = 50 + 50 * (raw[d.key] / max[d.key]);
-    s[d.key] = Math.max(0, Math.min(100, Math.round(v)));
+    s[d.key] = max[d.key] ? Math.round(100 * got[d.key] / max[d.key]) : 50;
   });
   return s;
 }
 
-/* 総合指標「心の可動域」 */
-function rangeOfMotion(s) {
-  const base =
-    0.30 * s.E + 0.12 * s.P + 0.28 * s.G + 0.20 * s.A + 0.10 * (100 - s.M);
-  const v = base * (1 - 0.25 * ((s.F - 50) / 100));   // F=50 で等倍。中立回答が 50 になる
-  return Math.max(0, Math.min(100, Math.round(v)));
+/* 総合指標「対人スキル総合」＝6つの技術の平均到達度 */
+function overallSkill(s) {
+  const sum = DIMENSIONS.reduce((a, d) => a + s[d.key], 0);
+  return Math.round(sum / DIMENSIONS.length);
 }
 
 /* プロファイル最近傍でタイプを決める */
@@ -71,14 +66,13 @@ function pickTypes(s) {
 
   return {
     primary: scored[0].type,
-    secondary: (scored[1].d - scored[0].d < 1.5) ? scored[1].type : null
+    secondary: (scored[1].d - scored[0].d < 2.5) ? scored[1].type : null
   };
 }
 
-/* 帯の判定はスコアの大小のみで行う（負荷軸かどうかの意味づけは BANDS 側が持つ） */
 function bandOf(key, v) {
-  if (v >= 66) return 'high';
-  if (v <= 35) return 'low';
+  if (v >= 67) return 'high';
+  if (v <= 40) return 'low';
   return 'mid';
 }
 
@@ -101,6 +95,7 @@ function shuffle(arr) {
 
 function startQuiz() {
   state.order = shuffle(ITEMS.map((_, i) => i));
+  state.optOrder = ITEMS.map((it) => shuffle(it.opts.map((_, i) => i)));
   state.answers = ITEMS.map(() => null);
   state.pos = 0;
   history.replaceState(null, '', location.pathname + location.search);
@@ -118,22 +113,26 @@ function renderQuestion() {
   $('#q-counter').textContent = `${state.pos + 1} / ${total}`;
   $('#q-progress-fill').style.width = `${(state.pos / total) * 100}%`;
   $('#q-progress').setAttribute('aria-valuenow', String(state.pos));
-  $('#q-text').textContent = item.t;
-  $('#q-text').focus({ preventScroll: true });
+  $('#q-scene').textContent = item.scene;
+  $('#q-text').textContent = item.q;
+
+  state.curOrder = state.optOrder[idx];
 
   const box = $('#q-options');
   box.innerHTML = '';
-  SCALE.forEach((opt) => {
+  state.curOrder.forEach((oi, pos) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'opt' + (current === opt.v ? ' is-selected' : '');
+    b.className = 'opt' + (current === oi + 1 ? ' is-selected' : '');
     b.innerHTML =
-      `<span class="opt-key">${opt.v}</span><span class="opt-label">${opt.label}</span>`;
-    b.addEventListener('click', () => answer(opt.v));
+      `<span class="opt-key">${pos + 1}</span><span class="opt-label"></span>`;
+    b.querySelector('.opt-label').textContent = item.opts[oi].t;
+    b.addEventListener('click', () => answer(oi + 1));
     box.appendChild(b);
   });
 
   $('#q-back').disabled = state.pos === 0;
+  $('#q-scene').focus({ preventScroll: true });
 }
 
 function answer(v) {
@@ -152,7 +151,7 @@ function goBack() {
 
 function finish() {
   const code = state.answers.join('');
-  history.replaceState(null, '', '#a=' + code);
+  history.replaceState(null, '', '#social-v1=' + code);
   renderResult(state.answers);
   show('result');
 }
@@ -161,79 +160,56 @@ function finish() {
 
 function renderResult(answers) {
   const s = scoreAll(answers);
-  const rom = rangeOfMotion(s);
+  const total = overallSkill(s);
   const { primary, secondary } = pickTypes(s);
-  state.last = { s, rom, type: primary, code: answers.join('') };
+  state.last = { s, rom: total, type: primary, code: answers.join('') };
 
-  $('#hero-value').textContent = rom;
-  $('#hero-note').textContent = romNote(rom);
+  $('#hero-value').textContent = total;
+  $('#hero-note').textContent = overallNote(total);
 
-  $('#type-name').textContent = primary.name;
+  $('#type-name').textContent = '対人対応の特徴：' + primary.name;
   $('#type-tagline').textContent = primary.tagline;
   $('#type-verdict').textContent = primary.verdict;
-  $('#type-body').innerHTML = primary.body.map((p) => `<p>${p}</p>`).join('');
+  $('#type-body').innerHTML = primary.body.map(() => '<p></p>').join('');
+  $('#type-body').querySelectorAll('p').forEach((el2, i) => { el2.textContent = primary.body[i]; });
   $('#type-risk').textContent = primary.risk;
-  $('#type-actions').innerHTML =
-    primary.actions.map((a) => `<li>${a}</li>`).join('');
+  $('#type-actions').innerHTML = primary.actions.map(() => '<li></li>').join('');
+  $('#type-actions').querySelectorAll('li').forEach((el2, i) => { el2.textContent = primary.actions[i]; });
 
   const secBox = $('#type-secondary');
   if (secondary) {
     secBox.hidden = false;
-    secBox.innerHTML =
-      `<strong>近接する傾向：${secondary.name}</strong>` +
-      `<span>${secondary.tagline}。こちらの対処法も部分的に当てはまります。</span>`;
+    secBox.innerHTML = '<strong></strong><span></span>';
+    secBox.querySelector('strong').textContent = `近接する傾向：${secondary.name}`;
+    secBox.querySelector('span').textContent =
+      `${secondary.tagline}。こちらの練習メニューも部分的に当てはまります。`;
   } else {
     secBox.hidden = true;
   }
 
-  renderScale(rom);
+  renderScale(total);
   renderRadar(s, primary);
   renderMeters(s);
-  renderTable(s, rom);
+  renderTable(s, total);
   collectOnResult();
+
   $('#copy-btn').textContent = '結果をコピー';
-  $('#copy-btn').dataset.text = buildShareText(s, rom, primary);
+  $('#copy-btn').dataset.text = buildShareText(s, total, primary);
 }
 
-function romNote(v) {
-  if (v >= 66) return '感じる力が大きく開いています。守りの設計が要ります。';
-  if (v >= 48) return '一般的な範囲で動いています。';
-  if (v >= 32) return '動きはあるが、狭くなっています。';
-  return '可動域がかなり狭い状態です。原因は性格とは限りません。';
+function overallNote(v) {
+  if (v >= 67) return '対人場面で使える手が、ひととおりそろっています。';
+  if (v >= 50) return '基本の手は身についています。伸ばす余地は特定の技術に偏っています。';
+  if (v >= 33) return '場面によって、使える手と使えない手の差が大きく出ています。';
+  return '持ち札がまだ少ない状態です。対人スキルは練習で増えます。';
 }
 
-function renderMeters(s) {
-  const wrap = $('#meters');
-  wrap.innerHTML = '';
+/* ---------- 総合スケール --------------------------------------------- */
 
-  DIMENSIONS.forEach((d) => {
-    const v = s[d.key];
-    const band = bandOf(d.key, v);
-    const text = BANDS[d.key][band];
-
-    const row = document.createElement('div');
-    row.className = 'meter';
-    row.innerHTML = `
-      <div class="meter-head">
-        <span class="meter-name">${d.name}${d.burden ? '<span class="tag">▲ 高いほど負荷</span>' : ''}</span>
-        <span class="meter-value">${v}</span>
-      </div>
-      <div class="meter-track" role="img" aria-label="${d.name} ${v} / 100">
-        <div class="meter-fill" style="width:${v}%"></div>
-      </div>
-      <p class="meter-desc">${d.short}</p>
-      <p class="meter-read">${text[0]}<br><span class="meter-do">→ ${text[1]}</span></p>
-    `;
-    wrap.appendChild(row);
-  });
-}
-
-/* ---------- 心の可動域スケール（0-100 上の位置） -------------------- */
-
-function renderScale(rom) {
-  $('#scale-fill').style.width = rom + '%';
+function renderScale(v) {
+  $('#scale-fill').style.width = v + '%';
   const marker = $('#scale-marker');
-  marker.style.left = rom + '%';
+  marker.style.left = v + '%';
   marker.setAttribute('aria-hidden', 'true');
 }
 
@@ -298,7 +274,6 @@ function renderRadar(s, type) {
   });
   svg.appendChild(gGrid);
 
-  // 軸ラベル
   const gLab = el('g', { class: 'radar-labels' });
   DIMENSIONS.forEach((d, i) => {
     const a = radarAngle(i);
@@ -309,16 +284,10 @@ function renderRadar(s, type) {
       x: x.toFixed(1), y: (y + 4 + 8 * Math.sin(a)).toFixed(1), 'text-anchor': anchor
     });
     t.textContent = d.name;
-    if (d.burden) {
-      const sp = el('tspan', { class: 'ax-burden' });
-      sp.textContent = ' ▲';
-      t.appendChild(sp);
-    }
     gLab.appendChild(t);
   });
   svg.appendChild(gLab);
 
-  // 代表像（線のみ）→ あなた（塗り＋線）の順に重ねる
   svg.appendChild(el('polygon', { class: cmp.cls, points: poly(ref) }));
   svg.appendChild(el('polygon', { class: 'series-you', points: poly(you) }));
 
@@ -329,7 +298,6 @@ function renderRadar(s, type) {
   });
   svg.appendChild(gDots);
 
-  // ホバー/フォーカス用の当たり判定（実マークより大きく取る）
   const tip = $('#radar-tip');
   const gHit = el('g', { class: 'radar-hits' });
   DIMENSIONS.forEach((d, i) => {
@@ -338,7 +306,7 @@ function renderRadar(s, type) {
     c.setAttribute('aria-label', `${d.name} あなた ${you[i]}、${cmp.name} ${ref[i]}`);
     const showTip = () => {
       tip.innerHTML =
-        `<b>${d.name}${d.burden ? ' ▲' : ''}</b>` +
+        `<b>${d.name}</b>` +
         `<span><i class="sw sw1"></i>あなた <b>${you[i]}</b></span>` +
         `<span><i class="sw ${cmp.sw}"></i>${cmp.short} <b>${ref[i]}</b></span>`;
       tip.hidden = false;
@@ -360,31 +328,63 @@ function renderRadar(s, type) {
     `<span class="lg"><i class="sw sw1"></i>あなた</span>` +
     `<span class="lg"><i class="sw ${cmp.sw}"></i>${cmp.name}</span>`;
 }
-function renderTable(s, rom) {
+
+/* ---------- 軸ごとのメーターと読み取り ------------------------------- */
+
+function renderMeters(s) {
+  const wrap = $('#meters');
+  wrap.innerHTML = '';
+
+  DIMENSIONS.forEach((d) => {
+    const v = s[d.key];
+    const text = BANDS[d.key][bandOf(d.key, v)];
+
+    const row = document.createElement('div');
+    row.className = 'meter';
+    row.innerHTML = `
+      <div class="meter-head">
+        <span class="meter-name"></span>
+        <span class="meter-value">${v}</span>
+      </div>
+      <div class="meter-track" role="img" aria-label="${d.name} ${v} / 100">
+        <div class="meter-fill" style="width:${v}%"></div>
+      </div>
+      <p class="meter-desc"></p>
+      <p class="meter-read"><span class="read-now"></span><br><span class="meter-do"></span></p>
+    `;
+    row.querySelector('.meter-name').textContent = d.name;
+    row.querySelector('.meter-desc').textContent = d.short;
+    row.querySelector('.read-now').textContent = text[0];
+    row.querySelector('.meter-do').textContent = '→ ' + text[1];
+    wrap.appendChild(row);
+  });
+}
+
+function renderTable(s, total) {
   const hasAvg = !!stats.avg;
   const avgHead = hasAvg ? `<th scope="col">参加者平均 (n=${stats.n})</th>` : '';
   const avgCell = (k) => hasAvg ? `<td>${Math.round(stats.avg[k])}</td>` : '';
 
   const rows = DIMENSIONS.map(
-    (d) => `<tr><th scope="row">${d.name}</th><td>${s[d.key]}</td>${avgCell(d.key)}` +
-           `<td>${d.burden ? '高いほど負荷' : '高いほど強い'}</td></tr>`
+    (d) => `<tr><th scope="row">${d.name}</th><td>${s[d.key]}</td>${avgCell(d.key)}</tr>`
   ).join('');
 
-  const romAvg = hasAvg && typeof stats.avg.rom === 'number' ? `<td>${Math.round(stats.avg.rom)}</td>` : (hasAvg ? '<td>—</td>' : '');
+  const totalAvg = hasAvg && typeof stats.avg.rom === 'number'
+    ? `<td>${Math.round(stats.avg.rom)}</td>` : (hasAvg ? '<td>—</td>' : '');
 
   $('#score-table').innerHTML = `
     <table>
-      <caption>スコア一覧（0〜100）</caption>
-      <thead><tr><th scope="col">軸</th><th scope="col">あなた</th>${avgHead}<th scope="col">向き</th></tr></thead>
-      <tbody>${rows}<tr><th scope="row">心の可動域（総合）</th><td>${rom}</td>${romAvg}<td>高いほど広い</td></tr></tbody>
+      <caption>到達度（0〜100。高いほど身についている）</caption>
+      <thead><tr><th scope="col">技術</th><th scope="col">あなた</th>${avgHead}</tr></thead>
+      <tbody>${rows}<tr><th scope="row">対人スキル総合</th><td>${total}</td>${totalAvg}</tr></tbody>
     </table>`;
 }
 
-function buildShareText(s, rom, type) {
+function buildShareText(s, total, type) {
   const dims = DIMENSIONS.map((d) => `${d.name} ${s[d.key]}`).join(' / ');
   return [
-    `【心の在処テスト】${type.name} — ${type.tagline}`,
-    `心の可動域：${rom} / 100`,
+    `【対人スキル診断】${type.name} — ${type.tagline}`,
+    `対人スキル総合：${total} / 100`,
     dims,
     location.href
   ].join('\n');
@@ -393,7 +393,7 @@ function buildShareText(s, rom, type) {
 /* ---------- URL からの復元 ------------------------------------------ */
 
 function tryRestoreFromHash() {
-  const m = /^#a=([1-5]+)$/.exec(location.hash);
+  const m = /^#social-v1=([1-4]+)$/.exec(location.hash);
   if (!m || m[1].length !== ITEMS.length) return false;
   const answers = m[1].split('').map(Number);
   renderResult(answers);
@@ -411,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#start-btn').addEventListener('click', startQuiz);
   $('#q-back').addEventListener('click', goBack);
   $('#restart-btn').addEventListener('click', startQuiz);
-  collectInit();   // 集計が有効なときだけ、同意カードと比較スイッチを挿入する
 
   $('#copy-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -426,9 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('keydown', (e) => {
     if ($('#quiz').hidden) return;
-    if (e.key >= '1' && e.key <= '5') { answer(Number(e.key)); e.preventDefault(); }
+    const n = Number(e.key);
+    if (n >= 1 && n <= state.curOrder.length) {
+      answer(state.curOrder[n - 1] + 1);
+      e.preventDefault();
+    }
     if (e.key === 'Backspace') { goBack(); e.preventDefault(); }
   });
+
+  collectInit();   // 集計が有効なときだけ、同意カードと比較スイッチを挿入する
 
   if (!tryRestoreFromHash()) show('intro');
 });

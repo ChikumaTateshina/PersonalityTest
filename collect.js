@@ -1,5 +1,5 @@
 /* =====================================================================
- * 心の在処テスト — 結果の送信と参加者平均（既定では無効）
+ * 対人スキル診断 — 結果の送信と参加者平均（既定では無効）
  *
  *   COLLECT.enabled === false のあいだ、この機能は完全に停止する。
  *   - 同意カードも比較スイッチも DOM に挿入されない（hidden ですらなく、存在しない）
@@ -50,7 +50,7 @@ const CONSENT_HTML = `
     <dl class="consent-detail">
       <div>
         <dt>送るもの</dt>
-        <dd>6軸のスコア（0〜100の整数）、心の可動域、判定されたタイプ、送信日（日付のみ）</dd>
+        <dd>6つの技術の到達度（0〜100の整数）、対人スキル総合、判定されたタイプ、送信日（日付のみ）</dd>
       </div>
       <div>
         <dt>送らないもの</dt>
@@ -154,7 +154,7 @@ function buildPayload() {
   ].join('-');                                  // 日付だけ。時刻は載せない
   return {
     v: 1, date, type: type.id, rom,
-    E: s.E, P: s.P, G: s.G, A: s.A, M: s.M, F: s.F
+    R: s.R, L: s.L, C: s.C, S: s.S, B: s.B, M: s.M
   };
 }
 
@@ -191,7 +191,7 @@ async function fetchStats() {
     const j = await res.json();
     if (j && typeof j.n === 'number') {
       stats.n = j.n;
-      stats.avg = (j.avg && typeof j.avg.E === 'number' && j.n >= COLLECT.minN) ? j.avg : null;
+      stats.avg = (j.avg && typeof j.avg.R === 'number' && j.n >= COLLECT.minN) ? j.avg : null;
     }
   } catch { /* 取れなければ平均は出さない。結果表示そのものには影響しない */ }
   updateCompareUI();
