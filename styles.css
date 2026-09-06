@@ -640,3 +640,13 @@ button { font-family: inherit; font-size: 15px; cursor: pointer; }
   .switch { display: flex; }
   .switch button { flex: 1; }
 }
+
+/* 一般常識と総合結果 */
+[hidden] { display: none !important; }
+.combined-bar { display: grid; gap: 5px; margin: 16px 0; }
+.combined-bar meter { width: 100%; height: 18px; }
+#knowledge-review details { padding: 14px 0; border-top: 1px solid var(--line); }
+#knowledge-review summary { cursor: pointer; }
+#knowledge-progress { max-width: 55%; accent-color: var(--accent); }
+#combined-result .result-foot { flex-wrap: wrap; gap: 12px; }
+#combined-result button { white-space: normal; }

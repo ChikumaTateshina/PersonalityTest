@@ -79,7 +79,7 @@ function bandOf(key, v) {
 /* ---------- 画面遷移 ------------------------------------------------- */
 
 function show(id) {
-  ['#intro', '#quiz', '#result'].forEach((sel) => {
+  ['#intro', '#quiz', '#result', '#knowledge-quiz', '#combined-result'].forEach((sel) => {
     $(sel).hidden = (sel !== '#' + id);
   });
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });

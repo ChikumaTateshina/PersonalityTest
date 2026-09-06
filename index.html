@@ -144,12 +144,39 @@
       </p>
     </div>
 
+    <div class="card">
+      <p class="eyebrow">NEXT STEP</p><h2>続けて、一般常識も確かめる</h2>
+      <p>情報の見極め・数量と計算・公共のルール・基礎知識と読解の全16問、約4分。両テストの全48回答から、新しい総合結果を表示します。</p>
+      <p>参加は任意です。こちらは最も適切な答えを一つ選ぶ知識テストです。</p>
+      <button id="knowledge-start" class="primary">一般常識テストへ進む</button>
+    </div>
     <div class="result-foot">
       <button id="copy-btn" class="ghost">結果をコピー</button>
       <button id="restart-btn" class="primary">もう一度やる</button>
     </div>
   </section>
 
+  <section id="knowledge-quiz" hidden>
+    <p class="eyebrow">STEP 2 / 一般常識</p>
+    <div class="quiz-top"><span id="knowledge-counter"></span><progress id="knowledge-progress" max="16" value="0" aria-label="一般常識の回答済み数"></progress></div>
+    <h2 id="knowledge-question" tabindex="-1"></h2><p>最も適切な答えを一つ選んでください。</p>
+    <div id="knowledge-options" class="options"></div>
+    <div class="quiz-foot"><button id="knowledge-back" class="ghost">前の質問へ</button><span>1〜4キーでも回答できます</span></div>
+    <button id="knowledge-exit" class="ghost">対人スキルの結果に戻る</button>
+    <p class="muted">途中の回答は再読込で失われます。結果から再開すると一般常識の1問目から始まります。</p>
+  </section>
+  <section id="combined-result" hidden>
+    <h1 id="combined-title" tabindex="-1">対人スキル＋一般常識<br>総合結果</h1>
+    <div class="hero"><p class="hero-label">両テストの総合スコア</p><p id="combined-value" class="hero-value"></p><p>/ 100</p></div>
+    <div class="card"><h2 id="combined-name"></h2><p id="combined-description"></p><p id="knowledge-correct"></p>
+      <p class="muted">対人32問の6軸平均と一般常識16問の正答率を、50%ずつ反映した独自の指標です。人間性・知能・社会での順位を示すものではありません。67点は説明を切り替える便宜的な境目です。</p></div>
+    <div class="card"><h2>全回答から見たスコア</h2><div id="combined-bars"></div></div>
+    <div class="card"><h2>次に試す行動</h2><p>両テストで相対的に低かった項目から選んでいます。同点の場合は表示順で選びます。</p><ol id="combined-actions"></ol></div>
+    <div class="card"><h2>一般常識の回答と解説</h2><div id="knowledge-review"></div></div>
+    <div class="result-foot"><button id="combined-copy" class="ghost">総合結果をコピー</button><button id="combined-social" class="ghost">対人スキルの詳細を見る</button></div>
+    <div class="result-foot"><button id="combined-retry" class="ghost">一般常識をやり直す</button><button id="combined-restart" class="primary">両方を最初から</button></div>
+    <p class="muted">回答は送信されません。共有リンクには両テストの回答が含まれます。</p>
+  </section>
   <footer class="site-foot">
     <p>対人スキル診断 — 練習のための非医学的ツールです。結果はその時点の行動選択を映したもので、固定的な能力ではありません。</p>
   </footer>
@@ -159,5 +186,6 @@
 <script src="data.js"></script>
 <script src="collect.js"></script>
 <script src="app.js"></script>
+<script src="knowledge.js"></script>
 </body>
 </html>
