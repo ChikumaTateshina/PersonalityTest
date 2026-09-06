@@ -95,7 +95,7 @@ function shuffle(arr) {
 
 function startQuiz() {
   state.order = shuffle(ITEMS.map((_, i) => i));
-  state.optOrder = ITEMS.map((it) => shuffle(it.opts.map((_, i) => i)));
+  state.optOrder = ITEMS.map(() => null);
   state.answers = ITEMS.map(() => null);
   state.pos = 0;
   history.replaceState(null, '', location.pathname + location.search);
@@ -116,7 +116,12 @@ function renderQuestion() {
   $('#q-scene').textContent = item.scene;
   $('#q-text').textContent = item.q;
 
-  state.curOrder = state.optOrder[idx];
+  const previous = state.optOrder[idx];
+  const next = shuffle(item.opts.map((_, i) => i));
+  // 再表示時にも並べ替える。偶然同じ並びなら一つ回して変更を保証する。
+  if (previous && next.every((v, i) => v === previous[i])) next.push(next.shift());
+  state.optOrder[idx] = next;
+  state.curOrder = next;
 
   const box = $('#q-options');
   box.innerHTML = '';
